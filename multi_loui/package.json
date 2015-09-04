@@ -4,8 +4,6 @@
   "description": "Multiplayer looping loui",
   "dependencies": {
     "express": "^4.10.2",
-    "socket.io": "^1.3.6",
-    "socket.io-wildcard": "^0.1.1",
-    "socketio-wildcard": "^0.1.1"
+    "socket.io": "^1.3.6"
   }
 }

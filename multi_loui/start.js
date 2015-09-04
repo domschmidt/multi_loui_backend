@@ -1,20 +1,12 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var router = require('socket.io-events')();
-
-/*
- * router.on('/game\/\d+\/create', function (sock, args, next) { var name =
- * args.shift(); var msg = args.shift(); console.log(name, msg); });
- * io.use(router);
- */
-
-var middleware = require('socketio-wildcard')();
-
-io.use(middleware);
 
 var games = {};
 
+/**
+ * Creates a game
+ */
 var createGame = function(socket, jsonData) {
 	console.log("create game with data: " + jsonData);
 	if (jsonData !== undefined) {
@@ -28,8 +20,10 @@ var createGame = function(socket, jsonData) {
 	}
 }
 
+/**
+ * Adds a user to a game
+ */
 var joinGame = function(socket, jsonData) {
-	console.log("join game with data: " + jsonData);
 	if (jsonData !== undefined) {
 		var gameId = jsonData.gameId;
 		var playerId = jsonData.playerId;
@@ -44,42 +38,44 @@ var joinGame = function(socket, jsonData) {
 			}
 		}
 	} else {
-		console.log("tried to create game with insufficient data");
+		console.log("tried to join a game with insufficient data");
 	}
 }
 
+/**
+ * Send the token to the next user in the queue
+ */
 var pushTokenToNextPlayer = function(socket, game) {
 	var currentIndex = game.playerIndex;
-	if (currentIndex === undefined || currentIndex >= game.players.length) {
+	if (currentIndex === undefined || currentIndex >= game.players.length -1) {
 		currentIndex = 0;
 	} else {
 		currentIndex = currentIndex + 1;
 	}
-	// socket.broadcast.to(game.players[currentIndex]).emit('/game/play',
-	// "token");
 	io.to(game.players[currentIndex]).emit('/game/play', 'for your eyes only');
 	game.playerIndex = currentIndex;
 }
 
+/**
+ * Start a game
+ */
 var startGame = function(socket, jsonData) {
-	console.log("start game with data: " + jsonData);
-	if (jsonData !== undefined) {
-		var gameId = jsonData.gameId;
-		if (gameId !== undefined) {
-			var game = games[gameId];
-			if (game !== undefined) {
-				pushTokenToNextPlayer(socket, game);
-			} else {
-				console.log("tried to start unexisting game");
-			}
-		}
-	} else {
-		console.log("tried to start game with insufficient data");
-	}
+	console.log("start game: " + jsonData);
+	updateGame(socket, jsonData);
 }
 
-var updateGameState = function(socket, jsonData) {
-	console.log("state received with data: " + jsonData);
+/**
+ * Push a new state
+ */
+var pushGameState = function(socket, jsonData) {
+	console.log("push game state: " + jsonData);
+	updateGame(socket, jsonData);
+}
+
+/**
+ * Updates the game state and sends the token to the next player (if game not finished yet)
+ */
+var updateGame = function(socket, jsonData) {
 	if (jsonData !== undefined) {
 		var gameId = jsonData.gameId;
 		if (gameId !== undefined) {
@@ -87,7 +83,7 @@ var updateGameState = function(socket, jsonData) {
 			if (game !== undefined) {
 				pushTokenToNextPlayer(socket, game);
 			} else {
-				console.log("tried to start unexisting game");
+				console.log("tried to operate on unexisting game");
 			}
 		}
 	} else {
@@ -104,14 +100,12 @@ io.on('connection', function(socket) {
 		joinGame(socket, jsonData);
 	});
 	socket.on('\/game\/state', function(jsonData) {
-		updateGameState(socket, jsonData);
+		pushGameState(socket, jsonData);
 	});
 	socket.on('\/game\/start', function(jsonData) {
 		startGame(socket, jsonData);
 	});
 });
-
-io.listen(8000);
 
 http.listen(1337, function() {
 	console.log('Multi loui is listening on *:1337');
