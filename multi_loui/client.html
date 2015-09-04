@@ -1,0 +1,70 @@
+<html>
+<head>
+
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+<script>
+	var socket = io('http://localhost:1337');
+
+	socket.on('/game/play', function(data) {
+		console.log(data);
+	});
+
+	function createGame() {
+		var createGame = {
+			gameId : 1
+		}
+
+		socket.emit('/game/create', createGame);
+	}
+
+	function joinGame() {
+
+		var joinGame = {
+			playerId : 1,
+			gameId : 1
+		}
+
+		socket.emit('/game/join', joinGame);
+	}
+
+	function startGame() {
+		var startGame = {
+			gameId : 1
+		}
+
+		socket.emit('/game/start', startGame);
+	}
+
+	function pushState() {
+		var gameState = {
+			gameId : 1,
+			token : {
+				x : 1,
+				y : 2,
+				direction : 1.2
+			},
+			player : {
+				id : 1,
+				score : 123
+			}
+		}
+		socket.emit('/game/state', gameState);
+
+	}
+</script>
+
+</head>
+
+<body>
+
+<button onclick="createGame();">create</button>
+
+<button onclick="joinGame();">join</button>
+
+<button onclick="startGame();">start</button>
+
+<button onclick="pushState();">push state</button>
+
+</body>
+</html>
