@@ -1,4 +1,5 @@
-var app = require('express')();
+var express = require('express');
+var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var router = require('socket.io-events')();
@@ -116,3 +117,5 @@ io.listen(8000);
 http.listen(1337, function() {
 	console.log('Multi loui is listening on *:1337');
 });
+
+app.use(express.static('public'));
