@@ -53,7 +53,14 @@ var pushTokenToNextPlayer = function(socket, game) {
 	} else {
 		currentIndex = currentIndex + 1;
 	}
-	io.to(game.players[currentIndex]).emit('/game/play', 'for your eyes only');
+	var token = game.token;
+	if (token === undefined) {
+		token = {
+				y: 300,
+				r: 0
+		};
+	}
+ 	io.to(game.players[currentIndex]).emit('/game/play', token);
 	game.playerIndex = currentIndex;
 }
 
@@ -70,6 +77,10 @@ var startGame = function(socket, jsonData) {
  */
 var pushGameState = function(socket, jsonData) {
 	console.log("push game state: " + jsonData);
+	var gameId = jsonData.gameId;
+	var updatedToken = jsonData.token;
+	var game = games[gameId];
+	game.token = updatedToken;
 	updateGame(socket, jsonData);
 }
 
