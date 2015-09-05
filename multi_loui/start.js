@@ -60,7 +60,9 @@ var pushTokenToNextPlayer = function(socket, game) {
 				r: 0
 		};
 	}
- 	io.to(game.players[currentIndex]).emit('/game/play', token);
+	var player = game.players[currentIndex];
+	console.log("send emit to player " + player)
+ 	io.to(player).emit('/game/play', token);
 	game.playerIndex = currentIndex;
 }
 
