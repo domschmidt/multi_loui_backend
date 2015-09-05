@@ -1,5 +1,228 @@
-<html>
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 9</title>
+		<script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
+    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
 <body>
-hallo
+
+<script type="text/javascript">
+
+var socket = io(window.location.origin);
+
+var urlParams;
+(window.onpopstate = function () {
+    var match,
+        pl     = /\+/g,  // Regex for replacing addition symbol with a space
+        search = /([^&=]+)=?([^&]*)/g,
+        decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+        query  = window.location.search.substring(1);
+
+    urlParams = {};
+    while (match = search.exec(query))
+       urlParams[decode(match[1])] = decode(match[2]);
+})();
+
+var gameId = urlParams["gameid"];
+var playerId = urlParams["playerid"];
+if(gameId){
+	var joinGame = {
+		playerId : playerId,
+		gameId : gameId
+	}
+
+	socket.emit('/game/join', joinGame);
+} else {
+	var createGame = {
+		gameId : 1
+	}
+
+	socket.emit('/game/create', createGame);
+}
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+
+function preload() {
+
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('ground', 'assets/platform.png');
+    game.load.image('star', 'assets/star.png');
+    game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+		game.load.image('trigger', 'assets/trigger.png');
+
+}
+
+var player;
+var platforms;
+var cursors;
+var trigger;
+
+var stars;
+var score = 0;
+var scoreText;
+
+var 	swipeCoordY,
+			swipeCoordY2,
+			swipeMinDistance = 100;
+
+function create() {
+
+    //  We're going to be using physics, so enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    //  A simple background for our game
+    game.add.sprite(0, 0, 'sky');
+
+    //  The platforms group contains the ground and the 2 ledges we can jump on
+    platforms = game.add.group();
+
+    //  We will enable physics for any object that is created in this group
+    platforms.enableBody = true;
+
+    // Here we create the ground.
+    var ground = platforms.create(0, game.world.height - 180, 'ground');
+
+    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    ground.scale.setTo(2, 6);
+
+    //  This stops it from falling away when you jump on it
+    ground.body.immovable = true;
+
+    //  Now let's create two ledges
+    var ledge = platforms.create(0, 0, 'ground');
+		ledge.scale.setTo(2, 2);
+    ledge.body.immovable = true;
+
+		trigger = game.add.sprite(200, game.world.height - 190, 'trigger');
+		game.physics.arcade.enable(trigger);
+		game.add.tween(trigger).to( { x: 300}, 1000, "Linear", true, 0, -1, true);
+		game.add.tween(trigger.scale).to( { x: 0.3}, 700, "Linear", true, 0, -1, true);
+
+
+    // The player and its settings
+    player = game.add.sprite(0, 300, 'dude');
+
+
+    //  We need to enable physics on the player
+    game.physics.arcade.enable(player);
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.body.bounce.y = 0.2;
+    player.body.gravity.y = 200;
+    //player.body.collideWorldBounds = true;
+
+    //  Finally some stars to collect
+    stars = game.add.group();
+
+    //  We will enable physics for any star that is created in this group
+    stars.enableBody = true;
+
+		stars.create(410, game.world.height - 200, 'star')
+		stars.create(410, game.world.height - 230, 'star')
+		stars.create(410, game.world.height - 260, 'star')
+
+    //  The score
+    scoreText = game.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+
+		game.input.onDown.add(function(pointer) {
+        swipeCoordY = pointer.clientY;
+    }, this);
+
+    game.input.onUp.add(function(pointer) {
+        swipeCoordY2 = pointer.clientY;
+				if(swipeCoordY2 < swipeCoordY - swipeMinDistance){
+						if(game.physics.arcade.overlap(player, trigger)) {
+							player.body.velocity.y = - Math.abs(swipeCoordY2 - swipeCoordY);
+						}
+        }
+    }, this);
+
+}
+
+function update() {
+
+    //  Collide the player and the stars with the platforms
+    game.physics.arcade.collide(player, platforms);
+    game.physics.arcade.collide(stars, platforms);
+
+    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
+    game.physics.arcade.overlap(player, stars, collectStar, null, this);
+
+
+
+    //  Reset the players velocity (movement)
+    player.body.velocity.x = 300;
+
+		if(player.body.x > 800) {
+			playStop();
+		}
+
+}
+
+function collectStar (player, star) {
+
+    // Removes the star from the screen
+    star.kill();
+
+    //  Add and update the score
+    score += 10;
+    scoreText.text = 'Score: ' + score;
+
+}
+
+
+function start() {
+	player.body.x = 0;
+	player.body.y = 300;
+}
+
+function play() {
+	player.body.x = 0;
+}
+
+function playStop(){
+	play();
+
+	var gameState = {
+		gameId : 1,
+		token : {
+			y : player.body.y,
+			r : player.body.rotation
+		},
+		player : {
+			id : 1,
+			score : 123
+		}
+	}
+	socket.emit('/game/state', gameState);
+}
+
+function end(){
+
+}
+
+function startGame() {
+	var startGame = {
+		gameId : 1
+	}
+
+	socket.emit('/game/start', startGame);
+}
+
+
+</script>
+
+<button onclick="startGame();">start</button>
+
 </body>
 </html>
