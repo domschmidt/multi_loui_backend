@@ -61,6 +61,7 @@ var player;
 var platforms;
 var cursors;
 var trigger;
+var newY = -1;
 
 var stars;
 var score = 0;
@@ -163,6 +164,13 @@ function update() {
 
 		if(player.body.x > 800) {
 			playStop();
+			player.body.x = -1000;
+		}
+
+		if(newY !== -1) {
+			player.body.x = 0;
+			player.body.y = newY;
+			newY = -1;
 		}
 
 }
@@ -184,22 +192,16 @@ function start() {
 	player.body.y = 300;
 }
 
-function play() {
-	player.body.x = 0;
+function play(y) {
+	newY = y;
 }
 
 function playStop(){
-	play();
 
 	var gameState = {
 		gameId : 1,
 		token : {
-			y : player.body.y,
-			r : player.body.rotation
-		},
-		player : {
-			id : 1,
-			score : 123
+			y : player.y
 		}
 	}
 	socket.emit('/game/state', gameState);
@@ -216,6 +218,11 @@ function startGame() {
 
 	socket.emit('/game/start', startGame);
 }
+
+socket.on('/game/play', function(data) {
+	console.log(data);
+	play(data.y);
+});
 
 
 </script>
