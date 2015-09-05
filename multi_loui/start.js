@@ -15,6 +15,7 @@ var createGame = function(socket, jsonData) {
 		if (gameId !== undefined) {
 			games[gameId] = {};
 			console.log("created game with id: " + gameId);
+			joinGame(socket, jsonData);
 		}
 	} else {
 		console.log("tried to create game with insufficient data");
@@ -27,8 +28,7 @@ var createGame = function(socket, jsonData) {
 var joinGame = function(socket, jsonData) {
 	if (jsonData !== undefined) {
 		var gameId = jsonData.gameId;
-		var playerId = jsonData.playerId;
-		if (gameId !== undefined && playerId !== undefined) {
+		if (gameId !== undefined) {
 			var game = games[gameId];
 			if (game !== undefined) {
 				if (game.players === undefined) {
